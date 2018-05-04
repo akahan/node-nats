@@ -2,8 +2,11 @@
 
 A [Node.js](http://nodejs.org/) client for the [NATS messaging system](https://nats.io).
 
-[![License MIT](https://img.shields.io/npm/l/express.svg)](http://opensource.org/licenses/MIT)
-[![Build Status](https://travis-ci.org/nats-io/node-nats.svg?branch=master)](http://travis-ci.org/nats-io/node-nats) [![npm version](https://badge.fury.io/js/nats.svg)](http://badge.fury.io/js/nats)[![Coverage Status](https://coveralls.io/repos/github/nats-io/node-nats/badge.svg?branch=master)](https://coveralls.io/github/nats-io/node-nats?branch=master)
+[![license](https://img.shields.io/github/license/nats-io/node-nats.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Travis branch](https://img.shields.io/travis/nats-io/node-nats/master.svg)]()
+[![Coveralls github branch](https://img.shields.io/coveralls/github/nats-io/node-nats/master.svg)]()
+[![npm](https://img.shields.io/npm/v/nats.svg)](https://www.npmjs.com/package/nats)
+[![npm](https://img.shields.io/npm/dm/nats.svg)](https://www.npmjs.com/package/nats)
 
 ## Installation
 
@@ -44,7 +47,7 @@ nats.request('help', null, {'max':1}, function(response) {
 // Request for single response with timeout.
 nats.requestOne('help', null, {}, 1000, function(response) {
   // `NATS` is the library.
-  if(response.code && response.code === NATS.REQ_TIMEOUT) {
+  if(response instanceof NATS.NatsError && response.code === NATS.REQ_TIMEOUT) {
     console.log('Request for help timed out.');
     return;
   }
@@ -258,8 +261,39 @@ nc.on('close', function() {
 
 See examples and benchmarks for more information.
 
+## Connect Options
 
-## Supported Node Versions
+The following is the list of connection options and default values.
+
+| Option                 | Aliases                                      | Default                   | Description
+|--------                |---------                                     |---------                  |------------
+| `encoding`             |                                              | `"utf8"`                  | Encoding specified by the client to encode/decode data
+| `json`                 |                                              | `false`                   | If true, message payloads are converted to/from JSON
+| `maxPingOut`           |                                              | `2`                       | Max number of pings the client will allow unanswered before rasing a stale connection error
+| `maxReconnectAttempts` |                                              | `10`                      | Sets the maximun number of reconnect attempts. The value of `-1` specifies no limit
+| `name`                 | `client`                                     |                           | Optional client name
+| `noRandomize`          | `dontRandomize`, `NoRandomize`               | `false`                   | If set, the order of user-specified servers is randomized.
+| `pass`                 | `password`                                   |                           | Sets the password for a connection
+| `pedantic`             |                                              | `false`                   | Turns on strict subject format checks
+| `pingInterval`         |                                              | `120000`                  | Number of milliseconds between client-sent pings
+| `preserveBuffers`      |                                              | `false`                   | If true, data for a message is returned as Buffer
+| `reconnect`            |                                              | `true`                    | If false server will not attempt reconnecting
+| `reconnectTimeWait`    |                                              | `2000`                    | If disconnected, the client will wait the specified number of milliseconds between reconnect attempts
+| `servers`              | `urls`                                       |                           | Array of connection `url`s
+| `tls`                  | `secure`                                     | `false`                   | This property can be a boolean or an Object. If true the client requires a TLS connection. If false a non-tls connection is required.  The value can also be an object specifying TLS certificate data. The properties `ca`, `key`, `cert` should contain the certificate file data. `ca` should be provided for self-signed certificates. `key` and `cert` are required for client provided certificates. `rejectUnauthorized` if `true` validates server's credentials
+| `token`                |                                              |                           | Sets a authorization token for a connection
+| `url`                  | `uri`                                        | `"nats://localhost:4222"` | Connection url
+| `useOldRequestStyle`   |                                              | `false`                   | If set to `true` calls to `request()` and `requestOne()` will create an inbox subscription per call.
+| `user`                 |                                              |                           | Sets the username for a connection
+| `verbose`              |                                              | `false`                   | Turns on `+OK` protocol acknowledgements
+| `waitOnFirstConnect`   |                                              | `false`                   | If `true` the server will fall back to a reconnect mode if it fails its first connection attempt.
+| `yieldTime`            |                                              |                           | If set, processing will yield at least the specified number of milliseconds to IO callbacks before processing inbound messages 
+
+
+  
+  
+
+## Supported Node Versions    
 
 Support policy for Nodejs versions follows 
 [Nodejs release support]( https://github.com/nodejs/Release).
@@ -269,25 +303,4 @@ or in maintenance.
 
 ## License
 
-(The MIT License)
-
-Copyright (c) 2015-2017 Apcera Inc.<br/>
-Copyright (c) 2011-2015 Derek Collison
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
+Unless otherwise noted, the NATS source files are distributed under the Apache Version 2.0 license found in the LICENSE file.

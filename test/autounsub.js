@@ -1,3 +1,18 @@
+/*
+ * Copyright 2013-2018 The NATS Authors
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /* jslint node: true */
 /* global describe: false, before: false, after: false, it: false */
 'use strict';
@@ -161,15 +176,14 @@ describe('Max responses and Auto-unsub', function() {
 
     });
 
-    it('should not leak subscriptions when using max', function(done) {
-        /* jshint loopfunc: true */
-        var nc = NATS.connect(PORT);
+    function requestSubscriptions(nc, done) {
         var received = 0;
 
         nc.subscribe('help', function(msg, reply) {
             nc.publish(reply, 'I can help!');
         });
 
+        /* jshint loopfunc: true */
         // Create 5 requests
         for (var i = 0; i < 5; i++) {
             nc.request('help', null, {
@@ -181,11 +195,59 @@ describe('Max responses and Auto-unsub', function() {
         nc.flush(function() {
             setTimeout(function() {
                 received.should.equal(5);
-                Object.keys(nc.subs).length.should.equal(1);
+                var expected_subs = (nc.options.useOldRequestStyle ? 1 : 2);
+                Object.keys(nc.subs).length.should.equal(expected_subs);
                 nc.close();
                 done();
             }, 100);
         });
+    }
 
+    it('should not leak subscriptions when using max', function(done) {
+        var nc = NATS.connect(PORT);
+        requestSubscriptions(nc, done);
     });
+
+    it('oldRequest should not leak subscriptions when using max', function(done) {
+        var nc = NATS.connect({port: PORT, useOldRequestStyle: true});
+        requestSubscriptions(nc, done);
+    });
+
+    function requestGetsWantedNumberOfMessages(nc, done) {
+        var received = 0;
+
+        nc.subscribe('help', function(msg, reply) {
+            nc.publish(reply, 'I can help!');
+            nc.publish(reply, 'I can help!');
+            nc.publish(reply, 'I can help!');
+            nc.publish(reply, 'I can help!');
+            nc.publish(reply, 'I can help!');
+            nc.publish(reply, 'I can help!');
+        });
+
+        nc.request('help', null, {max: 3}, function() {
+            received++;
+        });
+
+        nc.flush(function() {
+            setTimeout(function() {
+                received.should.equal(3);
+                nc.close();
+                done();
+            }, 100);
+        });
+    }
+
+    it('request should received specified number of messages', function(done) {
+        /* jshint loopfunc: true */
+        var nc = NATS.connect(PORT);
+        requestGetsWantedNumberOfMessages(nc, done);
+    });
+
+    it('old request should received specified number of messages', function(done) {
+        /* jshint loopfunc: true */
+        var nc = NATS.connect({port: PORT, useOldRequestStyle: true});
+        requestGetsWantedNumberOfMessages(nc, done);
+    });
+
 });

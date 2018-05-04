@@ -19,17 +19,17 @@
 
 var NATS = require('../'),
     nsc = require('./support/nats_server_control'),
+    child_process = require('child_process'),
     should = require('should');
 
-describe('Double SUBS', function() {
+describe('Close functionality', function() {
 
-    var PORT = 1922;
-    var flags = ['-DV'];
+    var PORT = 8459;
     var server;
 
     // Start up our own nats-server
     before(function(done) {
-        server = nsc.start_server(PORT, flags, done);
+        server = nsc.start_server(PORT, done);
     });
 
     // Shutdown our server after we are done
@@ -37,27 +37,41 @@ describe('Double SUBS', function() {
         nsc.stop_server(server, done);
     });
 
-    it('should not send multiple subscriptions on startup', function(done) {
-        var subsSeen = 0;
-        var subRe = /(\[SUB foo \d\])+/g;
+    it('close quickly', function(done) {
+        var nc = NATS.connect({
+            port: PORT
+        });
 
-        // Capture log output from nats-server and check for double SUB protos.
-        server.stderr.on('data', function(data) {
-            var m;
-            while ((m = subRe.exec(data)) !== null) {
-                subsSeen++;
+
+        var timer;
+
+        nc.flush(function() {
+           nc.subscribe("started", function(m) {
+               nc.publish("close");
+           });
+            timer = setTimeout(function() {
+                done(new Error("process didn't exit quickly"));
+            }, 10000);
+        });
+
+        var child = child_process.execFile('node', ['./test/support/exiting_client.js', PORT], function(error) {
+            if(error) {
+                nc.close();
+                done(error);
             }
         });
 
-        var nc = NATS.connect(PORT);
-        nc.subscribe('foo');
-        nc.on('connect', function(nc) {
-            setTimeout(function() {
-                nc.close();
-                subsSeen.should.equal(1);
+        child.on('exit', function(code, signal) {
+            if(timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            nc.close();
+            if(code !== 0) {
+                done("Process didn't return a zero code: [" + code + "]", signal);
+            } else {
                 done();
-            }, 100);
+            }
         });
     });
-
 });
